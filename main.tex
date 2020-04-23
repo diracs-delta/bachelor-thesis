@@ -1,0 +1,27 @@
+\documentclass[a4paper]{report}
+
+\usepackage{fancyhdr}
+\usepackage{mwe}
+
+% specify header and footers
+\pagestyle{fancy}
+\fancyhead{}
+\fancyfoot{}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[RO]{\textsl{\rightmark}}
+\fancyfoot[LO]{\textsl{\leftmark}}
+\fancyfoot[RO]{\thepage}
+
+\begin{document}
+
+\pagenumbering{roman}
+
+\input{title.tex}
+
+\tableofcontents
+
+\pagenumbering{arabic}
+
+\Blinddocument
+
+\end{document}
