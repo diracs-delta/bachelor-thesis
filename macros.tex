@@ -1,0 +1,14 @@
+% macros for math mode
+\newcommand{\hamil}{\hat{\mathcal{H}}}
+\newcommand{\kpsi}{\ket\Psi}
+\newcommand{\dif}{\:\mathrm{d}}
+\newcommand{\eps}{\epsilon}
+\newcommand{\perturbE}[2][i]{% usage: \perturbE[subscript]{order}
+E^{(#2)}_{#1}
+}
+\newcommand{\perturbPsi}[2][i]{% usage: \perturbPsi[subscript]{order}
+\ket{\Psi_{#1}^{(#2)}}
+}
+
+% macros for text mode
+\newcommand{\SE}{Schr{\"o}dinger equation}

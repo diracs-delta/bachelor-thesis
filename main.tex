@@ -1,7 +1,16 @@
 \documentclass[a4paper]{report}
 
+% import packages
 \usepackage{fancyhdr}
 \usepackage{mwe}
+\usepackage{amsmath}
+\usepackage{setspace}
+\usepackage{braket}
+\usepackage{bm}
+\usepackage{booktabs}
+
+% import macros
+\input{macros.tex}
 
 % specify header and footers
 \pagestyle{fancy}
@@ -12,6 +21,9 @@
 \fancyfoot[LO]{\textsl{\leftmark}}
 \fancyfoot[RO]{\thepage}
 
+% bibliography
+\usepackage[backend = bibtex, sorting = none]{biblatex} \addbibresource{bib.bib}
+
 \begin{document}
 
 \pagenumbering{roman}
@@ -20,8 +32,32 @@
 
 \tableofcontents
 
+% \chapter*{Abstract}
+% \addcontentsline{toc}{chapter}{Abstract}
+%
+% abstract goes here
+%
+% \newpage
+
 \pagenumbering{arabic}
 
-\Blinddocument
+\doublespacing
+
+% INTRODUCTION
+\input{intro.tex}
+
+% MCMP2 I
+\chapter{The MC-MP2 Method I: Theory}
+
+% MCMP2 II
+\chapter{The MC-MP2 Method II: Implementation}
+
+% DIMER CALC
+\chapter{MC-MP2 Calculations of Selected Dimer Systems}
+
+% CONCLUSIONS
+\chapter{Conclusions}
+
+\printbibliography
 
 \end{document}

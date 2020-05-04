@@ -1,0 +1,693 @@
+\chapter{Introduction}
+
+This chapter aims to introduce the reader to the basic mathematical and
+quantum-mechanical topics needed to achieve a full understanding of the topics
+presented in this thesis. This chapter borrows heavily from the textbook written
+by Szabo and Ostlund, and material discussed in this chapter cites it as a
+reference unless otherwise noted. \cite{szabo}
+
+Section \ref{s:math} introduces the mathematical concepts and conventions used
+throughout the text. It assumes at the very least a basic knowledge of
+multivariable calculus, applied linear algebra, and the quantum mechanics
+encountered in an introductory semester of physical chemistry. Section
+\ref{s:problem} posits the many-body electronic problem, the central subject of
+computational chemistry. Section \ref{s:hf} describes the Hartree-Fock
+approximation, arguably the most important first approximation to solutions of
+the many-body electronic problem. Sections \ref{s:post-hf} and \ref{s:pt} then
+describe post-Hartree-Fock methods, which expand upon and refine the
+Hartree-Fock approximation to provide more accurate results. In particular,
+perturbation theory is discussed in greater detail due to its relevance to the
+subject of this thesis, the MC-MP2 method.
+
+\section{Mathematical Review}
+\label{s:math}
+
+\subsection{Dirac Notation}
+
+Throughout the field of quantum mechanics, \emph{Dirac's bra-ket notation} is
+widely used to express complex functions and their corresponding inner products,
+and greatly lessens the burden associated with their notation. It also elegantly
+encapsules the relationship between functions and vectors.
+
+Any single-valued, continuous, square-integrable function $a(x)$ on some complex
+interval can be described as a vector lying in \emph{Hilbert space}, an abstract
+inner product space that extends the concept of Euclidean space to an infinite
+number of dimensions. The intuition behind this one-to-one correspondence
+between certain functions and infinite-dimensional vectors is best left to its
+own section (see Appendix TBD).
+
+$a(x)$ is represented as a \emph{ket} vector living in a Hilbert space termed
+ket space, and is denoted as follows.
+
+\begin{equation}
+	a(x) \equiv \ket{a}
+\end{equation}
+
+Its complex conjugate, $a(x)^*$, is represented as a \emph{bra} vector living in
+the dual (or, more descriptively, adjoint) space of ket space, and is denoted as
+
+\begin{equation}
+	a(x)^* \equiv \bra{a} = \ket{a}^\dagger,
+\end{equation}
+
+\noindent where the dagger denotes the adjoint. Observe that the inner product
+between any two functions $a(x)$, $b(x)$ then becomes
+
+\begin{equation}
+	\int a(x)^* b(x) \dif x = \int \bra{a} \ket{b} \dif x \equiv \braket{a|b},
+\end{equation}
+
+\noindent which is exactly analogous to the definition of an inner product for
+vectors.
+
+\subsection{Atomic Units}
+
+Atomic units arise from dropping the mathematical constants (e.g.\ $h$, $\pi$,
+etc.) in each term of the \SE. For instance, the \SE\ of atomic hydrogen,
+
+\begin{equation}
+	\left(
+	- \frac{\hbar^2}{2 m_e} \nabla^2
+	- \frac{e^2}{4 \pi \eps_0 r}
+	\right)
+	\Psi = E \Psi,
+\end{equation}
+
+\noindent reduces to the form
+
+\begin{equation}
+	\left(
+	- \frac{1}{2} \nabla^2
+	- \frac{1}{r}
+	\right)
+	\Psi = E \Psi
+\end{equation}
+
+\noindent in atomic units. A brief summary of atomic units and their conversion
+factors has been tabulated in Table \ref{t:atomic} for the reader's convenience.
+All subsequent equations hereafter will be derived in terms of these atomic
+units.
+
+\input{tables/atomic_units.tex}
+
+\subsection{Electronic Orbitals}
+
+This thesis will be primarily concerned with \emph{electronic} wavefunctions
+describing the dynamics of the electrons in a molecular system, rather than
+considering the total wavefunction describing the nuclei. The reasoning for
+doing so is outlined in Section \ref{s:problem}.
+
+The electronic wavefunction for a single electron is defined as a \emph{spatial
+orbital}, and is denoted by $\psi(\bm r)$, where $\bm r$ represents a vector
+containing the $x, y, z$ spatial coordinates of the electron. The spatial
+orbital fully defines the spatial distribution of a single electron. We
+furthermore define the \emph{spin orbital} $\chi(\bm x)$ as
+
+\begin{equation}
+	\chi_{j}(\bm x) =
+	\begin{cases}
+		\psi_{i}(\bm r) \alpha(\omega)  & \text{if } j = 2i - 1, \\
+		\psi_{i}(\bm r) \beta(\omega)   & \text{if } j = 2i, \\
+	\end{cases}
+	\label{eq:spino}
+\end{equation}
+
+\noindent where $\bm x$ is a four-vector containing the three spatial
+coordinates (i.e.\ the components of $\bm r$) and the additional spin coordinate
+$\omega$. Here, $\alpha(\omega), \beta(\omega)$ are any two arbitrary orthogonal
+functions of some arbitrary spin coordinate $\omega$, and represent the electron
+having $m_s = \pm \frac{1}{2}$ respectively. Thus, the spin orbital also
+distinguishes between electrons that may have the same spatial distribution, but
+have different spins. An example of this is the singlet ground state of
+molecular hydrogen, where the electrons occupy the same spatial 1s molecular
+orbital (MO), but have opposing spins.  Thus, the two electrons are said to
+occupy separate spin orbitals.
+
+It is now worth mentioning the conventions for indexing the spatial and spin
+orbitals. Typically, the number of electrons in a system is represented by $N$,
+while the total number of possible spatial orbitals (not just the occupied ones)
+is given by $K$, where $K \geq \frac{N}{2}$. Thus, the total number of spin orbitals is
+given by $2K$, directly following from equation \ref{eq:spino}. This convention
+will be followed throughout the rest of this thesis.
+
+\subsection{Hartree Products}
+
+The full Hamiltonian of a molecular system includes two-body interactions that
+complicate derivation of the solutions. However, if the Hamiltonian can be
+approximated as a series of one-electron interactions, e.g.
+
+\begin{equation}
+	\hamil \approx \sum_i^N \hat h(\bm r_i) ,
+	\label{eq:onehamil}
+\end{equation}
+
+\noindent where $\hat h(\bm r_i)$ is a one-electron Hamiltonian that
+\emph{approximates} the contribution of the $i$th electron to the total energy,
+e.g.\ by somehow averaging the contribution of other electrons out (c.f. Section
+\ref{s:hf}).
+
+Given this approximation, if the series of one-electron Hamiltonians is solved
+for all $i$, and the spin orbitals $\{ \chi_j \}$ are known to satisfy the
+relation
+
+\begin{equation}
+	\hat h(\bm r_i) \chi_j (\bm x_i) = \epsilon_j \chi_j(\bm x_i),
+\end{equation}
+
+\noindent then it can be shown that the corresponding \emph{approximate} total
+electronic wavefunction $\Psi$, the eigenfunction satisfying equation
+\ref{eq:onehamil}, is given by the \emph{Hartree product}
+
+\begin{equation}
+	\Psi(\bm x_1, \bm x_2, \dots, \bm x_N) = \chi_i(\bm x_1) \chi_j(\bm x_2) \dots \chi_k(\bm x_N),
+	\label{eq:hartree}
+\end{equation}
+
+\noindent with a corresponding eigenvalue
+
+\begin{equation}
+	E = \eps_i + \eps_j + \cdots + \eps_k.
+\end{equation}
+
+Note that the Hartree product approximates any possible state of the molecular
+system, not just the ground state, hence the unusual indexing of the spin
+orbitals in equation \ref{eq:hartree}. $i, j, k$ need not satisfy any relation
+other than that they are distinct and less than or equal to $2K$, and thus the
+Hartree product can represent the either the ground state or any arbitrary
+excited state. This makes Hartree products useful first approximations to the
+true nature of the total electronic wavefunction.
+
+\subsection{Slater Determinants}
+
+However, even forgiving the fact that the Hartree product is an approximation to
+the total electronic wavefunction, there exists a fundamental failure of the
+Hartree product in its ability to describe real quantum systems.  Namely, it
+does not treat electrons as fermions, which necessarily satisfy the Pauli
+exclusion principle. The Pauli exclusion principle in turn requires that all
+electronic wavefunctions must be antisymmetric with respect to exchange, i.e.
+
+\begin{multline}
+	\Psi(\bm x_1, \bm x_2, \dots, \bm x_i, \dots, \bm x_j, \dots, \bm x_N) \\
+	= - \Psi(\bm x_1, \bm x_2, \dots, \bm x_j, \dots, \bm x_i, \dots, \bm x_N).
+\end{multline}
+
+Because of the commutativity of simple multiplication, the Hartree product does
+not satisfy this relation, and thus is not a satisfactory description of the
+electronic wavefunction. Instead, there must exist a more complex relationship
+between the total electronic wavefunction and the one-electron spin orbitals
+satisfying equation \ref{eq:onehamil}. One method of antisymmetrizing the total
+electronic wavefunction is to represent it as a normalized determinant of a
+matrix of spin orbitals, where the $i$th row and $j$th column contain the spin
+orbital $\chi_j(\bm x_i)$, i.e.
+
+\begin{equation}
+	\Psi(\bm x_1, \bm x_2, \dots, \bm x_N)
+	=
+	\frac{1}{\sqrt{N!}}
+	\begin{vmatrix}
+		\chi_i (\bm x_1) & \chi_j (\bm x_1) & \cdots & \chi_k (\bm x_1) \\
+		\chi_i (\bm x_2) & \chi_j (\bm x_2) & \cdots & \chi_k (\bm x_2) \\
+		\vdots & \vdots & \ddots & \vdots \\
+		\chi_i (\bm x_N) & \chi_j (\bm x_N) & \cdots & \chi_k (\bm x_N)
+	\end{vmatrix}
+	.
+	\label{eq:slater}
+\end{equation}
+
+Equation \ref{eq:slater} defines the \emph{Slater determinant}, and is the
+antisymmetrized total electronic wavefunction of a $N$-electron system. The
+antisymmetry property of the Slater determinant can be verified by noting that
+the interchange of any two electrons is equivalent to interchanging two rows in
+the determinant. The interchange of any two rows or columns of a determinant
+reverses the sign. This is made especially apparent in the \emph{Leibniz formula
+for determinants},
+
+\begin{equation}
+	|A| = \sum_{\sigma \in S_n} \text{sgn}(\sigma) \prod^n_i A_{\sigma(i), i},
+\end{equation}
+
+\noindent where $\sigma$ is an arbitrary permutation in the set of all $n!$
+possible permutations $S_n$, and $\text{sgn}(\sigma)$ is the signature of the
+permutation, which is equal to unity and reverses sign following each single
+interchange of indices.
+
+\section{The Many-body Electronic Problem}
+\label{s:problem}
+
+Given the mathematical review in the preceding section, one is now in a position
+to discuss the many-body electronic problem and the computational difficulty
+involved in its solution. The central interest of electronic structure theory is
+the determination of solutions to the non-relativistic, time-independent \SE
+
+\begin{equation}
+	\hamil \ket{\Psi(\{\bm{r_i}\} , \{\bm{R_I}\}} = E \kpsi
+\label{eq:tise}
+\end{equation}
+
+\noindent where $\kpsi$ is an exact wavefunction for the molecular system,
+describing both the nuclei and electrons simultaneously, and $E$ is the
+corresponding energy of $\kpsi$. The Hamiltonian is in turn given by the
+relation
+
+\begin{equation}
+	\hamil = - \sum_i^n \frac{1}{2}\nabla_i^2
+	- \sum_I^N \frac{1}{2}\nabla_I^2
+	 - \sum_i^n \sum_I^N \frac{Z_I}{r_{iI}}
+	 + \sum_i^n \sum_{j > i}^n \frac{1}{r_{ij}}
+	 + \sum_I^N \sum_{J > I}^N \frac{Z_I Z_J}{r_{AB}}.
+\label{eq:fullh}
+\end{equation}
+
+Here, lowercase indices index over the $n$ electrons, while uppercase indices
+index over the $N$ nuclei. $Z_I$ represents the charge of a given nucleus $I$,
+and $r$ has the usual definition of being the distance between any two pairs of
+coordinates. A closer observation reveals the intuition summarized in the above
+equation. The first and second terms denote the kinetic energy of the electrons
+and nuclei respectively, while the third, fourth, and fifth terms denote Coulomb
+attraction and repulsion within the molecular system.
+
+As written above, equation \ref{eq:tise} is an extraordinarily involved $3(n +
+N)$-dimensional non-linear partial differential equation (PDE), with no
+analytical solution known for molecular systems larger than hydrogen.
+Furthermore, the eigenvalues and eigenfunctions of equation \ref{eq:tise} are
+seldom desired. Nuclear coordinates are typically already known via experimental
+techniques such as X-ray diffraction. The computational chemist wishes to
+determine purely the electronic component of the wavefunction and its
+corresponding eigenvalues, both of which collectively govern pertinent chemical
+properties such as polarizability, polarity, reactivity, and optical spectra.
+
+Thus, further approximations must be made to simplify equations \ref{eq:tise}
+and \ref{eq:fullh} and isolate the many-body electronic problem.
+
+\subsection{Non-relativistic Approximation}
+
+It is worth mentioning that the written form of \ref{eq:fullh} already
+encompasses the non-relativistic approximation, which neglects special
+relativistic effects electrons experience with sufficiently high linear and
+angular momenta \cite{rel1, rel2}. While this effect is especially significant
+for heavy atoms such as transition and post-transition metals (see the seminal
+reviews of Pyykk{\"o} and coworkers \cite{pyykko1, pyykko2, pyykko3}), it
+typically results in little error for organic systems such as those investigated
+hereonafter, and thus can be neglected.
+
+\subsection{Born-Oppenheimer Approximation}
+
+Nuclei are orders of magnitude more massive than electrons, and thus experience
+different time scales of motion, i.e.\ nuclei move far more slowly than
+electrons given the same momentum. In the context of the many-body electronic
+problem, this implies that nuclei can be essentially regarded as fixed points in
+space, and can be treated as given parameters to the problem. In other words,
+the problem is said to depend on the nuclear coordinates \emph{parametrically}
+rather than explicitly. This does not imply that electron-nuclei interactions
+neglected, but rather that the interactions are \emph{de-coupled} from one
+another, and that one-body nuclear interactions treated as constants and
+two-body electron-nuclei interactions are treated as one-body interactions.
+
+Thus, the nuclear terms (the second and fifth terms of equation \ref{eq:fullh})
+can be dropped and treated as added constants to the final energy of the
+molecular state. These dropped nuclear terms include the translational,
+vibrational, and rotational energies of the molecule. Equations \ref{eq:tise}
+and \ref{eq:fullh} reduce to
+
+\begin{equation}
+	\hamil \ket{\Psi(\{\bm{r_i}\} ; \{\bm{R_I}\}} = E \kpsi,
+\label{eq:BO}
+\end{equation}
+
+\noindent where $\kpsi$, $E$ now represent the \emph{electronic} wavefunction
+and its corresponding energy, and
+
+\begin{equation}
+\hamil = - \sum_i^n \frac{1}{2} \nabla_i^2
+	 - \sum_i^n \sum_I^N \frac{Z_I}{r_{iI}}
+	 + \sum_i^n \sum_{j > i}^n \frac{1}{r_{ij}}.
+\label{eq:BOhamil}
+\end{equation}
+
+\subsection{Statement of the Problem}
+
+The many-body electronic problem is summarized in equations \ref{eq:BO} and
+\ref{eq:BOhamil}, and can be made explicit as follows: \emph{given a set of
+nuclear coordinates $\{ R_I \}$, what are the corresponding wavefunctions and
+energies which satisfy the electronic \SE ?}
+
+No general method has been devised to directly solve the many-body electronic
+problem. Even with the drastic simplification conferred by the non-relativistic
+approximation, and the $3N$ fewer degrees of freedom resulting from the
+Born-Oppenheimer approximation, equation \ref{eq:BO} remains a $3n$-dimensional
+non-linear PDE with no analytical solution. The subsequent sections in this
+chapter detail further approximations one can make to arrive at numerical
+solutions to the many-body electronic problem.
+
+\section{The Hartree-Fock Approximation}
+\label{s:hf}
+
+\subsection{Physicists' Notation}
+
+Prior to further discussion, it is worth mentioning a notational shorthand for
+one-electron and two-electron Coulomb integrals that are so commonly encountered
+in further derivation of Hartree-Fock methods. This notation is known as
+\emph{physicists' notation}. For the one-electron case,
+
+\begin{equation}
+	\braket{a|h|b} = \int \chi_a^* (\bm x_i) h(\bm r_i) \chi_b (\bm x_i) \dif x_i,
+\end{equation}
+
+\noindent and for the two-electron case,
+
+\begin{equation}
+	\braket{ab|cd} = \iint \chi_a^* (\bm x_i) \chi_b^*(\bm x_j)
+	\frac{1}{r_{ij}}
+	\chi_c (\bm x_i) \chi_d (\bm x_j) \dif \bm x_i \dif \bm x_j.
+\end{equation}
+
+It is implied that during integration, spin orbitals lying left of the central
+separator are transformed to their corresponding complex conjugates, and are
+functions of $\bm x_i, \bm x_j$ respectively. Spin orbitals lying to the right
+are similarly defined, but are left unaffected during integration.
+
+One can furthermore define the \emph{anti-symmetrized} two-electron Coulomb
+integration in physicists' notation through the addition of an additional
+vertical separator as follows.
+
+\begin{equation}
+	\bra{ab} \ket{cd} = \braket{ab|cd} - \braket{ab|dc}.
+\end{equation}
+
+\subsection{The Hartree-Fock Equations}
+
+The most troublesome aspect of the many-body electronic problem is the two-body
+Coulomb interaction which makes it inseparable. However, to approximate the
+two-body Coulomb interaction that a single electron experiences, one could
+compute an average potential generated from all other electrons, thus
+simplifying the many-body electronic problem.
+
+The \emph{Hartree-Fock (HF) approximation} achieves this by decomposing the
+N-electron \SE\ detailed in equations \ref{eq:BO} and \ref{eq:BOhamil} into $N$
+one-electron \emph{Hartree-Fock equations}, which satisfy the relation
+
+\begin{equation}
+\begin{split}
+	\label{eq:fock}
+	\hat f(\bm x_i) \chi_a (\bm x_i)
+	&= \hat h(\bm x_i) \chi_a (\bm x_i) \\
+	&\quad + \sum_{b \neq a}^{2K} \left[ \int |\chi_b(\bm x_j)|^2 \frac{1}{r_{ij}} \dif \bm x_j \right] \chi_a (\bm x_i) \\
+	&\quad - \sum_{b \neq a}^{2K} \left[ \int \chi_b^*(\bm x_j) \chi_a(\bm x_j) \frac{1}{r_{ij}} \dif \bm x_j \right] \chi_b (\bm x_i) \\
+	&= \eps_a \chi_a (\bm x_i)
+\end{split}
+\end{equation}
+
+\noindent for all occupied spin orbitals, where $\hat f(\bm x_i)$ is termed the
+\emph{Fock operator}, $\eps_a$ is the energy of the spin orbital $\chi_a$
+occupied by electron $i$, $K$ is the number of given spatial basis functions,
+and $\hat h (\bm x_i)$ is the simplified one-electron Hamiltonian
+
+\begin{equation}
+\hat h (\bm x_i) = - \frac{1}{2} \nabla_i^2
+	           - \sum_I^M \frac{Z_I}{r_{iI}},
+\end{equation}
+
+\noindent given $M$ nuclei.
+
+The seemingly complicated integro-differential Hartree-Fock equations in
+equation \ref{eq:fock} can be decomposed term-by-term to assess the intuition
+behind the expression. The bracketed quantity in the second term can be
+interpreted as a \emph{mean-field Coulomb operator}, which computes the average
+potential by the $i$th electron generated by an electron occupying the $b$th
+spin orbital. This can be made explicit in the expression
+
+\begin{equation}
+\hat J_b (\bm x_i) = \int |\chi_b (\bm x_j)|^2 \frac{1}{r_{ij}} \dif \bm x_j.
+\end{equation}
+
+The third term in equation \ref{eq:fock} can also be written in terms of a new
+operator known as the \emph{exchange operator}, though this does not have a
+simple classical interpretation as did the mean-field Coulomb operator, and
+arises purely from the antisymmetric nature of the wavefunction as expressed by
+the Slater determinant. The action of the exchange operator on a spin orbital is
+given by the equation
+
+\begin{equation}
+	\hat K_b (\bm x_i) \chi_a(\bm x_i) =
+	\left[ \int \chi_b^* (\bm x_j) \frac{1}{r_{ij}} \chi_a(\bm x_j) \dif \bm x_j \right]
+	\chi_b (\bm x_i).
+\end{equation}
+
+An ad-hoc justification for the presence of this term in the Hartree-Fock
+equations is to account for the lower energy of systems of parallel spins, a
+quantum-mechanical phenomenon known as \emph{exchange correlation}. This process
+can be rationalized by noting that electrons with parallel spins have an
+inherently lower probability of being near each other because of Pauli
+exclusion, and thus experience less classical Coulomb repulsion between one
+another, lowering the energy of the system.
+
+Given the Coulomb and exchange operators, the Hartree-Fock equations can be
+re-written as
+
+\begin{equation}
+\hat f(\bm x_i) \chi_a (\bm x_i) =
+\left[ h(\bm x_i)
++ \sum_{b \neq a}^{2K} \hat J_b (\bm x_i)
+- \sum_{b \neq a}^{2K} \hat K_b (\bm x_i) \right] \chi_a (\bm x_i)
+= \eps_a \chi_a(\bm x_i).
+\label{eq:hf}
+\end{equation}
+
+\subsection{The Self-Consistent Field Method}
+
+The Hartree-Fock equations expressed in equation \ref{eq:hf} still present with
+immense computational difficulty, in that the Fock operator depends on the
+eigenfunctions themselves. Thus, the Hartree-Fock equations are
+\emph{pseudo-eigenvalue problems}, as the operator itself depends on the
+solutions obtained from the operator, and can only be solved iteratively.
+Nevertheless, there at least exists a clear method for solving this problem,
+dubbed the \emph{self-consistent field method} (SCF method). The general
+theoretical procedure is as follows.
+
+\begin{enumerate}
+	\item Assuming one has already been given a molecule (i.e.\ the set of
+		nuclear coordinates, atomic numbers, and number of electrons),
+		one must provide a basis set of spatial orbitals.
+
+	\item Generate the Fock operator using the given basis set.
+
+	\item Use the generated Fock operator to solve for the eigenvalues and
+		eigenvectors, which are closer approximations to the true
+		eigenvalues and eigenvectors of the Fock operator.
+
+	\item Repeat steps 2 and 3 until the eigenvalues and eigenvectors reach
+		sufficient convergence.
+\end{enumerate}
+
+Of course, this by no means provides a practical implementation of the HF
+method. In practice, implementation of the HF method is complicated by issues
+such as non-orthogonal basis functions, and requires inclusion of more
+sophisticated techniques in numerical linear algebra such as diagonalization and
+unitary transformations. This work will not discuss such techniques, as its
+primary intent is to illustrate developments in MC-MP2 theory, and will treat
+obtained HF energies and orbitals as givens. Nevertheless, MP2 builds off of the
+theoretical foundations laid out by the HF method, and it is instructive to
+learn the fundamentals of the HF method as to improve upon its results via MP2
+theory.
+
+% \subsection{The Hartree-Fock Energy}
+%
+% Assuming that the SCF method obtained the set of eigenvalues and eigenfunctions
+% of the Fock operator, it is then sufficient to use these to obtain the
+% \emph{Hartree-Fock energy}.
+
+\section{Post-Hartree-Fock Methods}
+\label{s:post-hf}
+
+\emph{Post-Hartree-Fock methods} are computational methods aimed at achieving
+more accurate solutions to the many-body electronic problem than those obtained
+via the HF method. Each of these methods corrects for one (of multiple)
+approximations made during solution of the HF equations. One such method,
+second-order many-body perturbation theory (MP2), is the central topic of this
+thesis, and is discussed in its own subsequent section. This section aims at
+discussing alternative post-Hartree-Fock methods and their various shortcomings
+as motivations for further development of MP2 theory.
+
+\subsection{Configuration Interaction}
+
+In the HF method, the ground state $N$-electron total electronic wavefunction is
+evaluated as the Slater determinant of $N$ single-electron eigenfunctions of the
+Fock operator. This incomplete, approximate representation of the total
+electronic wavefunction necessarily over-estimates the ground state energy, per
+the variational principle.
+
+To achieve a finer upper bound to the ground state energy, one can include
+contributions from other Slater determinants formed from the $N$ electrons all
+$2K$ spin orbitals, not just those lowest in in energy. This requires the
+computation of
+
+\begin{equation}
+	\binom{2K}{N} = \frac{2K!}{N!(2K - N)!}
+\end{equation}
+
+\noindent Slater determinants. Thus, the \emph{method of configuration
+interaction (CI)} aims at solving the variational problem
+
+\begin{equation}
+	\Psi = c_o \ket{\Psi_0} +  \sum_{a} \sum_{r} c_a^r \ket{\Psi_a^r}
+	+ \sum_{a} \sum_{b > a} \sum_{r} \sum_{r > s} c_{ab}^{rs} \ket{\Psi_{ab}^{rs}}
+	+ \cdots,
+\label{eq:full-ci}
+\end{equation}
+
+\noindent with the second term representing a summation over all singly-excited
+Slater determinants, the third term representing a summation over all
+doubly-excited Slater determinants, and so on. Needless to say, solution of this
+variational problem for all possible Slater determinants (full CI) is
+extraordinarily computationally complex as the number of Slater determinants
+required grows on the order of $2K!$. A full CI calculation of just molecular
+nitrogen using the ANO basis (4s3p1d) requires $9.68 \times 10^9$ Slater
+determinants. \cite{n2-ci}
+
+With full CI being prohibitively expensive, an alternative is to truncate the
+above variational problem past the doubly-excited Slater determinants in
+equation \ref{eq:full-ci}, in a procedure known as singly and doubly excited CI
+(SDCI). Alternatively, one can choose to vary the spin orbitals within the
+Slater determinant simultaneously while varying the set of coefficients to
+counteract the error introduced via truncation, in a procedure known as
+multiconfiguration self-consistent-field (MCSCF).
+
+However, truncated CI also suffers from a serious failure in that it fails to be
+\emph{size-consistent}, i.e. its energy fails to scale with $N$ given $N$
+interacting systems. In fact, its variational estimate of the energy tends
+towards zero in the limit $N \rightarrow \infty$. For investigations into
+molecular dimers (such as the ones discussed in this thesis) or larger systems
+such as crystals, this shortcoming is fatal.  An investigation of why this is
+true in the general case of truncated CI is rather involved and well beyond the
+scope of this text.  Nevertheless, a brief mention of this shortcoming, in
+conjunction with the computational cost of CI methods in general, is enough to
+rationalize the relative scarcity of CI methods in computational chemistry
+today.
+
+\subsection{Pair and Coupled Pair Theories}
+
+Pair and coupled pair theories are a broad family of methods that essentially
+provide size-consistent approximations to the full CI method. This includes the
+independent electron pair approximation (IEPA) and the coupled cluster (CC)
+method. Of these theories, the CC method is the most competitive. A specific
+instance of the CC method, CCSD(T) (coupled cluster single double triple)
+provides some of the most highly accurate results available in computational
+chemistry. \cite{cc1, cc2, cc3, cc4}
+
+Thus, CC methods serve as a competitive benchmark for correlation energies
+obtained using the MC-MP2 method discussed in this thesis. However, its
+computational cost scaling makes it prohibitively expensive for very large
+systems. Thus, further development of post-Hartree-Fock methods are still needed
+to analyze very large molecular systems.
+
+\section{Perturbation Theory}
+\label{s:pt}
+
+Perturbation theory is a theory encompassing a broad range of methods in
+computational physics and chemistry aimed at improving approximations to complex
+systems by constructing the application of successive refinements known as to
+the eigenvalues and eigenfunctions of the approximate system. Here, the two most
+pertinent examples to the many-body electronic structure problem are discussed.
+
+\subsection{Rayleigh-Schr{\"o}dinger Perturbation Theory}
+
+Suppose one is already given the eigenfunctions and eigenvalues of an
+\emph{approximate} Hamiltonian $\hamil_0$, which relates to the full Hamiltonian
+$\hamil$ through the addition of \emph{perturbation} $\hat V$, i.e.
+
+\begin{equation}
+	\hamil\ket{\Psi_i} = (\hamil_0 + \lambda\hat V) \ket{\Psi_i} = E_i \ket{\Psi_i}
+	\label{eq:pt}
+\end{equation}
+
+\noindent where $\lambda$ is equal to unity, and used purely to keep track of
+terms for future derivation. Next, let the eigenfunctions and eigenvalues of
+$\hamil$ be expanded into a power series relation with respect to its
+approximated counterparts.
+
+\begin{align}
+	\label{eq:e-pt}
+	E_i &= E^{(0)}_i + \lambda E^{(1)}_i + \lambda^2 E^{(2)}_i + \cdots \\
+	\label{eq:psi-pt}
+	\ket{\Psi_i} &= \ket{\Psi^{(0)}_i} + \lambda \ket{\Psi^{(1)}_i} + \lambda^2 \ket{\Psi^{(2)}_i} + \cdots
+\end{align}
+
+\noindent where the superscripts represent the successively finer corrections to
+the energy and wavefunction. For instance, $E_i^{(2)}$ represents the
+second-order correction to the $i$th energy. This expansion of the eigenvalues
+and eigenfunctions into a sum of successive corrections to their zeroth-order
+approximations is \emph{Rayleigh-Schr{\"o}dinger perturbation theory} (RSPT). To
+simplify this discussion, the expressions for third and higher-order
+perturbations will not be discussed, for their expressions are exceedingly
+cumbersome, and serve little purpose in the discussion of the MC-MP2 method, a
+variant of second-order perturbation theory.
+
+Next, let equations \ref{eq:e-pt} and \ref{eq:psi-pt} be substituted into the
+perturbation expansion \ref{eq:pt}. Gathering the zeroth, first, and second
+order terms corresponding to $1, \lambda, \lambda^2$ respectively, one finds
+
+\begin{align}
+	\hamil_0 \perturbPsi{0} &= \perturbE{0} \perturbPsi{0} \\
+	\hamil_0 \perturbPsi{1} + \hat V \perturbPsi{0}
+				&= \perturbE{0} \perturbPsi{1} + \perturbE{1} \perturbPsi{0} \\
+	\hamil_0 \perturbPsi{2} + \hat V \perturbPsi{1}
+				&= \perturbE{0} \perturbPsi{2} + \perturbE{1} \perturbPsi{1} + \perturbE{2} \perturbPsi{0}.
+\end{align}
+
+Further simplification of the above expressions by taking advantage of the
+orthogonality and completeness of the set $\{\perturbPsi{0}\}$ results in the
+following expressions for the zeroth, first, and second-order energies.
+
+\begin{align}
+	\perturbE{0} &= \braket{\Psi_i^{(0)} | \hamil_0 | \Psi_i^{(0)}} \\
+	\perturbE{1} &= \braket{\Psi_i^{(0)} | \hat V | \Psi_i^{(0)}} \\
+	\label{eq:rspt-2}
+	\perturbE{2} &= \sum_{j \neq i}
+	\frac{\braket{\Psi_i^{(0)} | \hat V | \Psi_j^{(0)}} \braket{\Psi_j^{(0)} | \hat V | \Psi_i^{(0)}}}
+	{\perturbE[i]{0} - \perturbE[j]{0}}.
+\end{align}
+
+\subsection{Many-body Perturbation Theory}
+
+Application of RSPT to the many-body electronic problem is termed
+\emph{many-body perturbation theory} (MBPT), and aims at improving the
+approximate energies and wavefunctions obtained by the HF method. In MBPT, a
+two-body perturbation, which removes the mean-field approximation and replaces
+it with the two-electron Coulomb operator, is applied to the Hartree-Fock
+operator. This can be explicit as follows.
+
+\begin{align}
+	\hamil_0 &=  \sum_i \hat f(\bm x_i) = \sum_i \left[ \hat h(\bm x_i) + \hat v^\text{HF}(\bm x_i) \right], \\
+	\hat V &= \sum_i \sum_{j > i} \frac{1}{r_{ij}} - \sum_i \hat v^\text{HF}(\bm x_i).
+\end{align}
+
+The second-order MBPT (termed \emph{MP2}) energy expression can then be derived
+using the second-order RSPT energy expression in \ref{eq:rspt-2} through
+substitution into equatoin \ref{eq:pt} and simplification of two-electron
+integrals. The rules for simplifying such integrals are given in Appendix TBD.
+It turns out that only doubly-excited determinants contribute to the MP2
+correction, and the final expression for a \emph{closed-shell system} (with no
+unpaired electrons in any spatial orbital) is given by the relation
+
+\begin{equation}
+	\perturbE[]{2} =
+	\sum_{a,b}^{\frac{N}{2}} \sum_{r,s}^{K - \frac{N}{2}}
+	\left[
+	\frac{2\braket{ab|rs}\braket{rs|ab}}{\eps_a + \eps_b - \eps_r -\eps_s}
+	-
+	\frac{\braket{ab|rs}\braket{rs|ab}}{\eps_a + \eps_b - \eps_r -\eps_s}
+	\right],
+\end{equation}
+
+\noindent where $a,b$ sum over the occupied spatial orbitals and $r,s$ sum over
+the unoccupied spatial orbitals, appropriately termed \emph{virtual orbitals}.
+
+However, $k$th order MBPT methods suffer from a high computational cost scaling
+similar to that of the coupled cluster methods. The computational complexity is
+bounded by $O(n^{k+3})$, where $n$ is some measure proportional to the size of
+molecular system (e.g. number of basis sets). \cite{mbpt-book} Thus, to enhance
+the applicability of MBPT methods, specifically MP2, more sophisticated,
+parallelized implementations of MBPT methods are needed. The next chapter will
+discuss the MC-MP2 method forwarded by the Hirata group, and its relevance
+towards obtaining solutions to the many-body electronic problem for very large
+systems.
