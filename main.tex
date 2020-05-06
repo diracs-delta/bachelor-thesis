@@ -8,6 +8,8 @@
 \usepackage{braket}
 \usepackage{bm}
 \usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[version = 4]{mhchem}
 
 % import macros
 \input{macros.tex}
@@ -32,12 +34,12 @@
 
 \tableofcontents
 
-% \chapter*{Abstract}
-% \addcontentsline{toc}{chapter}{Abstract}
-%
-% abstract goes here
-%
-% \newpage
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+abstract goes here
+
+\newpage
 
 \pagenumbering{arabic}
 
@@ -47,17 +49,18 @@
 \input{intro.tex}
 
 % MCMP2 I
-\chapter{The MC-MP2 Method I: Theory}
+\input{mcmp2-1.tex}
 
 % MCMP2 II
-\chapter{The MC-MP2 Method II: Implementation}
+\input{mcmp2-2.tex}
 
-% DIMER CALC
-\chapter{MC-MP2 Calculations of Selected Dimer Systems}
+% DIMER
+\input{dimer.tex}
 
 % CONCLUSIONS
 \chapter{Conclusions}
 
 \printbibliography
+\addcontentsline{toc}{chapter}{Bibliography}
 
 \end{document}

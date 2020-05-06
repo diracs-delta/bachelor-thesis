@@ -1,0 +1,390 @@
+\chapter{The MC-MP2 Method I: Theory}
+
+\section{Monte Carlo Integration}
+\label{s:mc-int}
+
+Suppose one wishes to evaluate a multi-dimensional integral on some
+\emph{finite} interval $L$,
+
+\begin{equation}
+I = \int f(\bm x) \dif \bm x,
+\label{eq:mc-int}
+\end{equation}
+
+\noindent where $\bm x$ is high in dimensionality (e.g.\ 10-dimensional).
+Quadrature rules become an increasingly poor choice as the dimensionality of the
+system increases, as the number of integrand evaluations scales with respect to
+$O(n^d)$, where $n$ is the number of points selected for the quadrature rule,
+and $d$ is the dimensionality of the system. In this case, even a primitive
+5-point quadrature rule, insufficient to provide accuracy for anything but
+simple functions on a small interval, requires $5^{10} = 9,765,625$ integrand
+evaluations.
+
+Thus, one seeks a method of integration that converges independently of the
+number of dimensions involved in the problem. This is of particular relevance to
+the many-body electronic structure problem; the MP2 energy correction in
+equation \ref{eq:mp2-e} requires evaluation of two 6-dimensional integrals.
+
+One such method is \emph{Monte Carlo integration} (MC integration), which
+involves simply computing an average of the integrand of randomly selected
+points on $L$. The \emph{estimator}, $\hat I$, thus satisfies the property
+
+\begin{equation}
+	I \approx \hat I(N) = \frac{1}{N} \sum_{i = 1}^N f(^i \bm x),
+\end{equation}
+
+\noindent where $^i \bm x$ is the $n$th randomly chosen value of $\bm x$ on the
+interval $L$. Because the number of integrand evaluations $N$ can be chosen
+prior to MC integration, this method is independent of the dimensionality of the
+problem.  Given the same number of iterations, the error in MC integration
+converges more rapidly than any other quadrature rule for high-dimensional
+problems.
+
+Furthermore, because $\bm x$ is treated as a random variable during MC
+integration, the \emph{standard error of the integral} converges with respect to
+$1/N$, and obeys the relation
+
+\begin{equation}
+	^Ns = \sqrt{\frac{\sigma^2}{N - 1}},
+	\label{eq:stderr}
+\end{equation}
+
+\noindent where $\sigma^2$ can be obtained from its definition,
+
+\begin{equation}
+	\sigma^2 = \text E[(X - \mu)^2] = \int (f(\bm x) - I)^2  \dif \bm x.
+\end{equation}
+
+The main drawback of the MC integration is the slow rate of convergence, as
+exhibited by equation \ref{eq:stderr}. To reduce the uncertainty by a factor of
+10, the number of iterations must be increased by a factor of 100. If the
+uncertainty is already high due to the nature of the integrand or the chosen
+weight function (discussed later), then MC integration may not exhibit
+sufficient convergence in any reasonable amount of time. Such practical concerns
+regarding variance reduction are addressed in the next chapter.
+
+For now, let us focus on deriving a method with which to apply MC integration to
+the many-body electronic problem, specifically the calculation of the
+second-order MP2 energy expression in equation \ref{eq:mp2-e}. The next step is
+to determine how one should proceed with evaluating an integral over an
+\emph{infinite} interval.
+
+\subsection{Importance Sampling}
+
+Clearly, one cannot sample an infinite interval in a finite amount of time.
+Thus, a method of accurately sampling points to evaluate an integral over an
+infinite interval is needed. To do so, one begins by introducing a well-chosen
+\emph{weight function} $\omega(\bm x)$, such that
+
+\begin{equation}
+	I = \int \frac{f(\bm x)}{\omega(\bm x)} \omega(\bm x) \dif \bm x
+	= \text E\left[\frac{f(\bm x)}{\omega(\bm x)} \right]_{\bm x \sim \omega(\bm x)},
+\end{equation}
+
+\noindent where the notation to the right of the bracket implies $\bm x$ is
+sampled according to the weight function $\omega(\bm x)$. Given this new
+function, the estimator then satisfies the relation
+
+\begin{equation}
+	\hat I(N) = \frac{1}{N} \sum_{i = 1}^N \frac{f(^i \bm x)}{\omega(^i \bm x)}
+	\label{eq:mc-weight}
+\end{equation}
+
+\noindent where $^i\bm x$ is similarly sampled according to the weight function
+$\omega(\bm x)$. This weighted estimator in equation \ref{eq:mc-weight} is
+guaranteed to converge to the original integral of interest in equation
+\ref{eq:mc-int}, provided the weight function satisfies the following properties.
+\cite{mc-book}
+
+\begin{itemize}
+	\item $\omega(\bm x)$ has a normalized probability density function (PDF)
+		which satisfies the property
+		\begin{equation} \int \omega(\bm x) \dif \bm x = 1. \end{equation}
+
+	\item  $\omega(\bm x)$ is always greater than 0, and thus does not alter
+		the sign of the integral.
+
+	\item $\omega(\bm x)$ has a slower rate of decay than $f(\bm x)$
+		as it vanishes for large magnitudes of $\bm x$.
+
+	\item $\omega(\bm x)$ satisfies the property
+		\begin{equation} \left|\frac{f(\bm x)}{\omega(\bm x)}\right| < \infty \end{equation}
+		except at a countable, finite number of points. In other words,
+		the weighted integral should not diverge.
+\end{itemize}
+
+Another property $\omega(\bm x)$ must satisfy, specific to the evaluation of the
+integrals in the MP2 energy expression, is that it must share the same
+singularities as $f(\bm x)$. In other words, it should diverge at points where
+$f(\bm x)$ diverges. This is important because in the expression for
+$\perturbE[]{2}$, the two-electron integrals are undefined if $r_{12}$ or
+$r_{34}$ are zero, and thus the weight function should not sample from such
+points.
+
+The weight function not only allows one to sample an infinite interval by using
+a weighted PDF that decays as $|\bm x| \rightarrow \infty$, but also lessens
+uncertainty in the estimate of $I$. Observe that the variance of
+equation \ref{eq:mc-weight} is given by the relation
+
+\begin{equation}
+	\sigma^2 = \int \left( \frac{f(\bm x)}{\omega(\bm x)} - I \right)^2 \omega(\bm x) \dif \bm x
+	= \int \frac{f(\bm x)^2}{\omega(\bm x)} \dif\bm x - I^2,
+\end{equation}
+
+\noindent and that a well-chosen weight function that satisfies the expression
+
+\begin{equation}
+	\omega(\bm x) \approx \frac{f(\bm x)}{I}
+\end{equation}
+
+\noindent minimizes the variance. However, since $I$ is unknown, it is best to
+search for a weight function that behaves like $f(\bm x)$ everywhere, but is
+easier to evaluate.
+
+\subsection{Inverse Transform Sampling}
+
+\section{Laplace Transform Formalism}
+\label{s:laplace}
+
+MC integration thus seems highly applicable to the many-body electronic problem,
+and the evaluation of the 6-dimensional two-electron integrals of the MBPT
+energy corrections. However, the MP2 energy expression as written in equation
+\ref{eq:mp2-e} cannot be directly evaluated because of the denominator. This
+section will investigate the problem of separability, the additional
+transformations needed to bring about an MC-integrable MP2 energy expression,
+originally forwarded by Willow and colleagues in the Hirata group \cite{willow1,
+willow2}.
+
+\subsection{Separability of the MP2 Energy}
+
+It is unfortunate that the modern convention for denoting indices over the
+occupied and virtual MOs is different from the one used by Szabo and Ostlund.
+For convenience, the MP2 energy is reprinted below with the different indices.
+
+\begin{equation}
+\begin{split}
+	\perturbE[]{2} &=
+	\sum_{i,j}^{\text{occ}} \sum_{a,b}^{\text{vir}}
+	\frac{2\braket{ij|ab}\braket{ab|ij}}{\eps_i + \eps_j - \eps_a -\eps_b}
+	-
+	\sum_{a,b}^{\text{occ}} \sum_{r,s}^{\text{vir}}
+	\frac{\braket{ij|ab}\braket{ab|ji}}{\eps_i + \eps_j - \eps_a -\eps_b}
+	\\
+	&= \perturbE[\text{direct}]{2} + \perturbE[\text{exchange}]{2},
+	\label{eq:mp2-ee}
+\end{split}
+\end{equation}
+
+\noindent where $i,j$ and $a,b$ sum over all occupied and virtual orbitals,
+respectively. MC integration, because it is an inherently stochastic method that
+introduces uncertainty, is not suitable for evaluating sums of many integrals,
+as the error becomes especially tedious and intractable, and the estimate of the
+MP2 energy would be lost. The objective is to somehow represent this summation
+into a single, 12-dimensional integral that can be evaluated by MC integration.
+
+One can attempt to do this by multiplying the two-electron integrals together,
+and expand the direct and exchange energies, but the derivation fails at the
+following step.
+
+\begin{equation}
+\begin{split}
+\perturbE[\text{direct}]{2}
+= 2 \sum_{i,j}^{\text{occ}} \sum_{a,b}^{\text{vir}}
+   &\frac{1}{\eps_i + \eps_j - \eps_a - \eps_b} \\
+   &\times \left[ \iiiint \phi_i^*(\bm r_1) \phi_i(\bm r_3) \phi_j^*(\bm r_2) \phi_j(\bm r_4) \phi_a^*(\bm r_3) \phi_a(\bm r_1) \right. \\
+   &\qquad\qquad\;\; \times \left. \phi_b^*(\bm r_4) \phi_b(\bm r_2) \times \frac{1}{r_{12}r_{34}} \dif \bm r_1 \dif \bm r_2 \dif \bm r_3 \dif \bm r_4 \right]
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+\perturbE[\text{exchange}]{2}
+= - \sum_{i,j}^{\text{occ}} \sum_{a,b}^{\text{vir}}
+   &\frac{1}{\eps_i + \eps_j - \eps_a - \eps_b} \\
+   &\times \left[ \iiiint \phi_i^*(\bm r_1) \phi_i(\bm r_3) \phi_j^*(\bm r_2) \phi_j(\bm r_4) \phi_a^*(\bm r_4) \phi_a(\bm r_1) \right. \\
+   &\qquad\qquad\;\; \times \left. \phi_b^*(\bm r_3) \phi_b(\bm r_2) \times \frac{1}{r_{12}r_{34}} \dif \bm r_1 \dif \bm r_2 \dif \bm r_3 \dif \bm r_4 \right]
+\end{split}
+\end{equation}
+
+\noindent The problem is that the summations over occupied and virtual orbitals
+is \emph{coupled} by the external denominator, and the sum of integrals cannot
+be represented as an integral of sums (i.e.\ the summation operators cannot be
+\emph{interchanged} with the 12-dimensional integral operator). Thus, some
+transformation of the denominator is required to separate the denominator.
+
+\subsection{The Laplace Transform}
+
+Thankfully, such a mathematical transformation exists. The \emph{Laplace
+transform} is defined as the transformation
+
+\begin{equation}
+	\mathcal{L}\{ f(\tau) \}(s) \equiv F(s) = \int_0^{\infty} f(t) e^{-st} \dif \tau,
+\end{equation}
+
+\noindent where $\tau$ is typically called \emph{imaginary time} in physics and
+chemistry. This is especially relevant in solving differential equations as it
+can transform derivatives and integrals into algebraic expressions
+\cite{laplace}. However, its most relevant property for this discussion is its
+action on denominators. Observe that
+
+\begin{equation}
+	\mathcal{L}\{ 1 \}\left( a + b \right) = \int_0^{\infty}e^{-(a + b)\tau} \dif \tau = \frac{1}{a + b}.
+\end{equation}
+
+\subsection{MP2 Energy in the Laplace Transform}
+
+This observation was made by Alml{\"o}f, who derived what is now called the
+\emph{Laplace transform formalism} of MP2 theory \cite{almlof1, almlof2,
+almlof3}. Application of the Laplace transform to the energy denominator
+in equation \ref{eq:mp2-ee} results in the transformation
+
+\begin{equation}
+\begin{split}
+\mathcal{L}\{1\}(\eps_i + \eps_j - \eps_a - \eps_b) &= \int_0^\infty e^{-(\eps_i + \eps_j - \eps_a - \eps_b)\tau} \dif \tau \\
+						    &= - \int_0^\infty e^{\eps_i\tau}e^{\eps_j\tau}e^{-\eps_a\tau}e^{-\eps_b\tau} \dif \tau.
+\end{split}
+\end{equation}
+
+\noindent Separation of energy terms is thus achieved through such a
+transformation. Upon multiplying the exponential energy terms into the integrand
+of \ref{eq:mp2-ee}, the terms are finally separable, and the summation can be
+moved within the integral to yield
+
+\begin{multline}
+\perturbE[\text{direct}]{2}
+=
+-2
+\int_0^\infty
+\iiiint
+o(\bm r_1, \bm r_3, \tau) o(\bm r_2, \bm r_4, \tau) v(\bm r_1, \bm r_3) v(\bm r_2, \bm r_4, \tau)
+\\
+\times \frac{1}{r_{12}r_{34}}
+\dif\bm r_1 \dif\bm r_2 \dif\bm r_3 \dif\bm r_4 \dif\tau,
+\label{eq:mcmp2-dir}
+\end{multline}
+
+\noindent and
+
+\begin{multline}
+\perturbE[\text{exchange}]{2}
+=
+\int_0^\infty
+\iiiint
+o(\bm r_1, \bm r_3, \tau) o(\bm r_2, \bm r_4, \tau) v(\bm r_1, \bm r_4) v(\bm r_2, \bm r_3, \tau)
+\\
+\times \frac{1}{r_{12}r_{34}}
+\dif\bm r_1 \dif\bm r_2 \dif\bm r_3 \dif\bm r_4 \dif\tau,
+\label{eq:mcmp2-exch}
+\end{multline}
+
+\noindent where $o, v$ are defined as
+
+\begin{align}
+o(\bm r_1, \bm r_2)
+&=
+\sum_i^\text{occ}
+\phi_i^*(\bm r_1) \phi_i(\bm r_2) e^{\eps_k \tau},
+\\
+v(\bm r_1, \bm r_2)
+&=
+\sum_a^\text{vir}
+\phi_a^*(\bm r_1) \phi_a(\bm r_2) e^{- \eps_a \tau}.
+\end{align}
+
+Finally, combining the MP2 direct and exchange integrals, the MC-integrable MP2
+energy is given by
+
+\begin{equation}
+\begin{split}
+\perturbE[]{2}
+=
+\int_0^\infty
+\iiiint
+[
+&o(\bm r_1, \bm r_3, \tau) o(\bm r_2, \bm r_4, \tau) v(\bm r_1, \bm r_4) v(\bm r_2, \bm r_3, \tau)
+\\
+& - 2 o(\bm r_1, \bm r_3, \tau) o(\bm r_2, \bm r_4, \tau) v(\bm r_1, \bm r_3) v(\bm r_2, \bm r_4, \tau)
+]
+\\
+& \times \frac{1}{r_{12}r_{34}}
+\dif\bm r_1 \dif\bm r_2 \dif\bm r_3 \dif\bm r_4 \dif\tau,
+\label{eq:mcmp2}
+\end{split}
+\end{equation}
+
+\noindent Thus, at the cost of another integral over imaginary time, one has obtained a
+13-dimensional integral that can be integrated through MC integration.  However,
+in practice, only the inner 12-dimensional integral over spatial coordinates
+should be evaluated using the MC method. The reasoning is twofold:
+
+\begin{enumerate}
+
+\item The exponential term is a well-behaved, monotonically decreasing function.
+	Such functions can be evaluated with quadrature rules with high accuracy
+	given few more than 10--20 points. MC integration could require millions
+	of iterations to achieve the same accuracy.
+
+\item One would need to construct a new weight function to account for the
+	presence of the exponential term, if imaginary time coordinates are to
+	be integrated over via the MC method as well. This unnecessarily
+	complicates evaluation of the integrand and slows convergence.
+
+\end{enumerate}
+
+\section{The Electronic Importance Function}
+\label{s:elec-imp}
+
+Because the integral is over an infinite measure, an importance function must be
+specified for the inner 12-dimensional integral over spatial coordinates in
+equation \ref{eq:mcmp2} before the MC method can be applied. The development of
+such an importance function was forwarded by Willow and colleagues in the Hirata
+group \cite{willow1, willow2}. The \emph{electronic importance function} is
+
+\begin{equation}
+\omega(\bm r_1, \bm r_2, \bm r_3, \bm r_4)
+=
+\frac{1}{N_g^2} \frac{g(\bm r_1) g(\bm r_2) g(\bm r_3) g(\bm r_4)}{r_{12}r_{34}}
+,
+\end{equation}
+
+\noindent where $N_g$ is the normalization constant
+
+\begin{equation}
+N_g
+=
+\iint \frac{g(\bm r_1) g(\bm r_2)}{r_{12}} \dif\bm r_1 \dif\bm r_2,
+\end{equation}
+
+\noindent and $g(\bm r)$ is the sum of $s$-type \emph{Gaussian atomic orbitals}
+(GTOs), each of which are centered on the atoms of system. While this is
+certainly not the only possible importance function, there are several reasons
+for why this is a good choice.
+
+\begin{itemize}
+
+\item The importance function is computationally efficient. It can be shown that
+	any product of linear combination of Gaussian functions is itself a
+	linear combination of Gaussian functions \cite{gaussian}. This is the
+	\emph{Gaussian product theorem}, and greatly simplifies evaluation of
+	the importance function.
+
+\item Related to the preceding point, integrals of linear combinations of GTOs
+	have been extensively studied for the past several decades, as Gaussian
+	functions are common basis AOs in computational chemistry. Thus,
+	calculation of the normalization factor is nearly trivial, for it can be
+	obtained analytically \cite{gaussian-eval}.
+
+\item The denominator cancels out the singularities of the MP2 energy, namely
+	the $r_{12}r_{34}$ term.
+
+\item Using the chosen importance function has been verified to give more rapid
+	convergence than using the electron density spatial distribution as the
+	importance function in existing studies \cite{willow1}.
+
+\end{itemize}
+
+\section{Conclusions}
+
+The theoretical foundations laid out in this chapter constitute \emph{Monte
+Carlo second-order MBPT} (MC-MP2), and is the subject of further investigation
+throughout this thesis.

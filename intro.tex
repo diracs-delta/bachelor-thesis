@@ -465,30 +465,38 @@ dubbed the \emph{self-consistent field method} (SCF method). The general
 theoretical procedure is as follows.
 
 \begin{enumerate}
+
 	\item Assuming one has already been given a molecule (i.e.\ the set of
 		nuclear coordinates, atomic numbers, and number of electrons),
-		one must provide a basis set of spatial orbitals.
+		one must provide a basis set of spatial \emph{atomic orbitals}
+		(AOs). Many different basis sets are available in the literature
+		for varying applications, and it is to the chemists' discretion
+		which to use.
 
 	\item Generate the Fock operator using the given basis set.
 
-	\item Use the generated Fock operator to solve for the eigenvalues and
-		eigenvectors, which are closer approximations to the true
-		eigenvalues and eigenvectors of the Fock operator.
+	\item The generated Fock operator to solve for the new eigenvalues and
+		new eigenvectors, which are closer approximations to the true
+		eigenvalues and eigenvectors of the Fock operator. The new
+		eigenvectors are linear combinations of the AOs, and are termed
+		\emph{molecular orbitals} (MOs).
 
 	\item Repeat steps 2 and 3 until the eigenvalues and eigenvectors reach
 		sufficient convergence.
+
 \end{enumerate}
 
-Of course, this by no means provides a practical implementation of the HF
-method. In practice, implementation of the HF method is complicated by issues
-such as non-orthogonal basis functions, and requires inclusion of more
-sophisticated techniques in numerical linear algebra such as diagonalization and
-unitary transformations. This work will not discuss such techniques, as its
-primary intent is to illustrate developments in MC-MP2 theory, and will treat
-obtained HF energies and orbitals as givens. Nevertheless, MP2 builds off of the
-theoretical foundations laid out by the HF method, and it is instructive to
-learn the fundamentals of the HF method as to improve upon its results via MP2
-theory.
+Ideally, this provides a set of MOs defined in terms of the AO basis, with a
+corresponding set of eigenvalues. Of course, this by no means provides a
+practical implementation of the HF method. In practice, implementation of the HF
+method is complicated by issues such as non-orthogonal basis functions, and
+requires inclusion of more sophisticated techniques in numerical linear algebra
+such as diagonalization and unitary transformations. This work will not discuss
+such techniques, as its primary intent is to illustrate developments in MC-MP2
+theory, and will treat obtained HF energies and orbitals as givens.
+Nevertheless, MP2 builds off of the theoretical foundations laid out by the HF
+method, and it is instructive to learn the fundamentals of the HF method as to
+improve upon its results via MP2 theory.
 
 % \subsection{The Hartree-Fock Energy}
 %
@@ -671,23 +679,78 @@ unpaired electrons in any spatial orbital) is given by the relation
 
 \begin{equation}
 	\perturbE[]{2} =
-	\sum_{a,b}^{\frac{N}{2}} \sum_{r,s}^{K - \frac{N}{2}}
+	\sum_{a,b}^{\text{occ}} \sum_{r,s}^{\text{vir}}
 	\left[
 	\frac{2\braket{ab|rs}\braket{rs|ab}}{\eps_a + \eps_b - \eps_r -\eps_s}
 	-
-	\frac{\braket{ab|rs}\braket{rs|ab}}{\eps_a + \eps_b - \eps_r -\eps_s}
+	\frac{\braket{ab|rs}\braket{rs|ba}}{\eps_a + \eps_b - \eps_r -\eps_s}
 	\right],
+	\label{eq:mp2-e}
 \end{equation}
 
 \noindent where $a,b$ sum over the occupied spatial orbitals and $r,s$ sum over
 the unoccupied spatial orbitals, appropriately termed \emph{virtual orbitals}.
+For future reference, it is useful to separate the summation in equation
+\ref{eq:mp2-e} into two separate summations containing the first and second
+terms, and denote them as ``direct" and ``exchange" energies respectively, i.e.
 
-However, $k$th order MBPT methods suffer from a high computational cost scaling
-similar to that of the coupled cluster methods. The computational complexity is
-bounded by $O(n^{k+3})$, where $n$ is some measure proportional to the size of
-molecular system (e.g. number of basis sets). \cite{mbpt-book} Thus, to enhance
-the applicability of MBPT methods, specifically MP2, more sophisticated,
-parallelized implementations of MBPT methods are needed. The next chapter will
-discuss the MC-MP2 method forwarded by the Hirata group, and its relevance
-towards obtaining solutions to the many-body electronic problem for very large
-systems.
+\begin{equation}
+\begin{split}
+	\perturbE[]{2} &=
+	\sum_{a,b}^{\text{occ}} \sum_{r,s}^{\text{vir}}
+	\frac{2\braket{ab|rs}\braket{rs|ab}}{\eps_a + \eps_b - \eps_r -\eps_s}
+	-
+	\sum_{a,b}^{\text{occ}} \sum_{r,s}^{\text{vir}}
+	\frac{\braket{ab|rs}\braket{rs|ba}}{\eps_a + \eps_b - \eps_r -\eps_s}
+	\\
+	&= \perturbE[\text{direct}]{2} + \perturbE[\text{exchange}]{2}.
+\end{split}
+\end{equation}
+
+\subsection{Computational Complexity of MP2}
+
+Despite being a size-consistent alternative to CI methods, $k$th order MBPT
+methods suffer from a high computational cost scaling similar to that of the
+coupled cluster methods. The computational complexity is bounded by
+$O(n^{k+3})$, where $n$ is some measure proportional to the size of molecular
+system (e.g. number of basis sets) \cite{mbpt-book, mp2-direct}. Interestingly,
+the bottleneck of the traditional (hereafter termed \emph{direct}) MP2 algorithm
+is not the evaluation of the two-electron integrals, but rather the
+transformation of the integral of basis AOs to the integral of MOs using
+coefficient matrices desired in equation \ref{eq:mp2-e}, i.e.
+
+\begin{equation}
+	\braket{pq|rs} = \sum_\kappa \sum_\lambda \sum_\mu \sum_\nu
+	C_p^{\kappa *} C_q^{\lambda *} C_r^\mu C_s^\nu \braket{\kappa\lambda | \mu\nu},
+	\label{eq:aomo-trans}
+\end{equation}
+
+\noindent where $p,q,r,s$ denote arbitrary MOs that are linear combinations of
+the basis AOs $\kappa,\lambda,\mu,\nu$ related by the transformation matrices
+$C_p^{\kappa}, C_q^{\lambda}, C_r^\mu, C_s^\nu$ generated by the HF method.
+
+Despite this transformation being costly to execute each iteration, it is
+usually still more rapid than pre-computing and storing the integrals, and then
+loading the integrals from memory. This is especially true for parallel
+supercomputing applications, where interprocess communication is costly.
+Furthermore, not many integrals are reused in MP2 energy expression, and thus
+memory I/O is even more inefficient with respect to computing the transformation
+in equation \ref{eq:aomo-trans} each iteration.
+
+To understand why this may be so, it is helpful to consider the following
+analogy. The scaled time difference between one CPU cycle (assuming a 3 GHz CPU)
+and loading from DIMM RAM is the difference equivalent to the difference between
+one second and four minutes \cite{systems}. If the number of MO integrals is too
+large to be stored in DIMM RAM, the computational cost is drastically worse; the
+scaled time requirement (again, given a CPU cycle is one second) of loading from
+external memory is anywhere between 4 days for SSDs to 9 months for HDDs.  Thus,
+in the case of MP2 methods, the AO-MO transformation in equation
+\ref{eq:aomo-trans} is a painful but necessary step.
+
+To enhance the applicability of MBPT methods, specifically MP2, more
+sophisticated, parallelized implementations of MBPT methods are needed. The next
+chapter will discuss the MC-MP2 method forwarded by the Hirata group, and its
+relevance towards obtaining solutions to the many-body electronic problem for
+very large systems.
+
+
