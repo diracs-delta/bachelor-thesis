@@ -1,0 +1,13 @@
+NOTE: thesis was submitted at commit ac08fbd. i'm still working on it because i
+find the subject interesting and i'm proud of my writing. i hope to get a
+printed copy once i'm done.
+
+* ensure consistent inline citation formatting (before period)
+
+* check references (sometimes google scholar messes up capitalization)
+
+* use split environment for longer equations
+
+* finish up control variate explanation
+
+* add convergence plots for MC-MP2
