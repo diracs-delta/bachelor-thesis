@@ -1,5 +1,15 @@
 \chapter{The MC-MP2 Method I: Theory}
 
+In this chapter, the theoretical basis of the MC-MP2 method is discussed.
+Section \ref{s:mc-int} details Monte Carlo integration, and introduces the
+reader to a numerical method of evaluating high-dimensional integrals, and its
+relevance to the many-body electronic problem. Section \ref{s:laplace} examines
+the Laplace transform, and applies it to the MP2 energy expression to obtain a
+single high-dimensional integral that is suitable for Monte Carlo integration.
+Finally, Section \ref{s:elec-imp} introduces a well-chosen importance function
+that is necessary to evaluate the high-dimensional integral derived in the
+preceding section.
+
 \section{Monte Carlo Integration}
 \label{s:mc-int}
 
@@ -31,6 +41,7 @@ points on $L$. The \emph{estimator}, $\hat I$, thus satisfies the property
 
 \begin{equation}
 	I \approx \hat I(N) = \frac{1}{N} \sum_{i = 1}^N f(^i \bm x),
+	\label{eq:mc-method}
 \end{equation}
 
 \noindent where $^i \bm x$ is the $n$th randomly chosen value of $\bm x$ on the
@@ -39,6 +50,19 @@ prior to MC integration, this method is independent of the dimensionality of the
 problem.  Given the same number of iterations, the error in MC integration
 converges more rapidly than any other quadrature rule for high-dimensional
 problems.
+
+Observe that equation \ref{eq:mc-method} also satisfies the unique property that
+it is \emph{massively-parallelizable}, i.e.\ a multi-threaded implementation of
+the MC method is highly efficient and almost trivial. Each CPU thread only need
+be supplied the function and a random input to generate a single estimator of
+the integral, without any theoretical need for interprocess communication.
+Afterwards, the estimators generated across all the threads are merely averaged,
+and the integral evaluated using the parallel MC method is obtained. This is a
+massive advantage in comparison with methods requiring linear algebra (i.e.\ HF,
+CI, CCSD(T)) that are difficult to be parallelized efficiently due to the need
+for interprocess communication of large arrays. For these methods, there is a
+diminishing return in speed as one supplies more cores to the parallelized
+implementation.
 
 Furthermore, because $\bm x$ is treated as a random variable during MC
 integration, the \emph{standard error of the integral} converges with respect to
@@ -55,13 +79,14 @@ $1/N$, and obeys the relation
 	\sigma^2 = \text E[(X - \mu)^2] = \int (f(\bm x) - I)^2  \dif \bm x.
 \end{equation}
 
-The main drawback of the MC integration is the slow rate of convergence, as
-exhibited by equation \ref{eq:stderr}. To reduce the uncertainty by a factor of
-10, the number of iterations must be increased by a factor of 100. If the
-uncertainty is already high due to the nature of the integrand or the chosen
-weight function (discussed later), then MC integration may not exhibit
-sufficient convergence in any reasonable amount of time. Such practical concerns
-regarding variance reduction are addressed in the next chapter.
+In exchange for a massively-parallelizable integration scheme, the main drawback
+of the MC integration is the slow rate of convergence, as exhibited by equation
+\ref{eq:stderr}. To reduce the uncertainty by a factor of 10, the number of
+iterations must be increased by a factor of 100. If the uncertainty is already
+high due to the nature of the integrand or the chosen weight function (discussed
+later), then MC integration may not exhibit sufficient convergence in any
+reasonable amount of time. Such practical concerns regarding variance reduction
+are addressed in the next chapter.
 
 For now, let us focus on deriving a method with which to apply MC integration to
 the many-body electronic problem, specifically the calculation of the
@@ -140,8 +165,6 @@ equation \ref{eq:mc-weight} is given by the relation
 \noindent minimizes the variance. However, since $I$ is unknown, it is best to
 search for a weight function that behaves like $f(\bm x)$ everywhere, but is
 easier to evaluate.
-
-\subsection{Inverse Transform Sampling}
 
 \section{Laplace Transform Formalism}
 \label{s:laplace}
@@ -345,6 +368,7 @@ group \cite{willow1, willow2}. The \emph{electronic importance function} is
 =
 \frac{1}{N_g^2} \frac{g(\bm r_1) g(\bm r_2) g(\bm r_3) g(\bm r_4)}{r_{12}r_{34}}
 ,
+\label{eq:imp}
 \end{equation}
 
 \noindent where $N_g$ is the normalization constant
@@ -383,8 +407,47 @@ for why this is a good choice.
 
 \end{itemize}
 
+Finally, one has obtained all the necessary components to evaluate an estimator
+for the MP2 energy, obtained via the MC method. Let $f_\text{MP2}$ be the
+13-dimensional integrand $\tilde f$ in equation \ref{eq:mcmp2} integrated over the
+imaginary time coordinate, e.g.
+
+\begin{equation}
+f_\text{MP2}(\bm r_1, \bm r_2, \bm r_3, \bm r_4)
+=
+\int_0^\infty
+\tilde f(\bm r_1, \bm r_2, \bm r_3, \bm r_4, \tau)
+\dif\tau.
+\end{equation}
+
+\noindent Then, given the importance function in \ref{eq:imp}, the MP2 energy is
+evaluated via the MC estimator
+
+\begin{equation}
+\perturbE[]{2}
+\approx
+\widehat{\perturbE[]{2}}
+\equiv
+\frac{1}{N}
+\sum_{n = 1}^N
+\frac
+{f_\text{MP2}(^n\bm r_1, ^n\bm r_2, ^n\bm r_3, ^n\bm r_4)}
+{\omega(^n\bm r_1, ^n\bm r_2, ^n\bm r_3, ^n\bm r_4)},
+\label{eq:walkers}
+\end{equation}
+
+\noindent where the $n$ superscript preceding each electron coordinate denotes
+that it is the $n$th randomly chosen coordinate according to the importance
+function. The randomly chosen coordinates are termed \emph{walkers}, for they
+``walk" across 12-dimensional space according to the importance function. This
+analogy is more clear in the context of Metropolis sampling (not discussed).
+
 \section{Conclusions}
 
-The theoretical foundations laid out in this chapter constitute \emph{Monte
-Carlo second-order MBPT} (MC-MP2), and is the subject of further investigation
-throughout this thesis.
+The preceding sections proposed a method of evaluating the MP2 energy expression
+via Monte Carlo integration, and discussed its applicability and scalability to
+large molecular systems.  The theoretical foundation laid out in this chapter
+constitutes the \emph{Monte Carlo second-order MBPT} (MC-MP2) method, and is the
+subject of further investigation in this thesis. The next chapter discusses
+practical enhancements to the MC-MP2 method that make it competitive with
+respect to alternative methods in computational chemistry.

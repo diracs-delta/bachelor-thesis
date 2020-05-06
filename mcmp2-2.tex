@@ -1,20 +1,126 @@
 \chapter{The MC-MP2 Method II: Implementation}
 
-In the preceding chapter, the theoretical background of the MC-MP2 method was
-discussed. This chapter focuses on the additional methodology needed for a
-robust and practical implementation of the MC-MP2 method, and includes
-discussion of some of my personal contributions to the MC-MP2 method code
-written by Doran.
+This chapter examines a series of practical improvements that can be made to the
+implementation of the MC-MP2 method theorized in the preceding chapter. This
+improvements are primarily aimed at \emph{variance reduction}, i.e.\ lessening
+the uncertainty in the estimated MP2 energy, thereby improving it. The sections
+in this chapter are arranged roughly in the order of decreasing precedence, as
+to focus attention on the most pertinent aspects of a practical implementation
+of the MC-MP2 method.
 
-\section{Inverse Sampling}
+Section \ref{s:inverse} details a sampling algorithm for choosing walkers
+according to the importance function. While not a variance reduction technique,
+it is certainly necessary in any implementation of the MC method using a weight
+function, such as the MC-MP2 method. Section \ref{s:redundant} details the
+redundant-walker algorithm, an especially powerful variance reduction method
+unique to the MC-MP2 method. Section \ref{s:cv} examines the control variates
+method, and how additional post-processing of unbiased estimators results in
+strong variance reduction. Section \ref{s:F12} briefly mentions the F12
+correction, which accounts for basis set incompleteness. Sections
+\ref{s:correlated}, and \ref{s:CP} explain an additional variance reduction
+technique and correction specific to calculation of dimer interaction energies.
+
+\section{Inverse Transform Sampling}
+\label{s:inverse}
+
+Prior to addressing variance reduction techniques, it is important to mention
+how random points are samples according the importance function in any
+implementation of the MC method. For simplicity, consider a one-dimensional PDF
+$w(x)$.  Its associated \emph{cumulative density function} (CDF) $W(x)$ is given
+by the relation
+
+\begin{equation}
+W(x) = \int w(x) \dif x.
+\end{equation}
+
+Then, let $p$ be a random variable such that $p \in (0, 1)$. Generation of such
+a random variable is discussed in Section \ref{s:prng}. Then, there must exist
+some point $x^*$ that satisfies the property
+
+\begin{equation}
+W(x^*) - p = 0.
+\end{equation}
+
+\noindent Thus, $x^*$ is the random point chosen according to the weight
+function $w(x)$, and is given by the relation
+
+\begin{equation}
+x^* = W^{-1}(p),
+\end{equation}
+
+\noindent where $W^{-1}$ is the inverse CDF, alternatively termed the
+corresponding \emph{quantile function} of $W$. The above equation need not be
+solved analytically; it can be solved numerically through various root-finding
+methods such as Newton's method.
+
+This sampling method is termed \emph{inverse transform sampling}. With some
+difficulty, this can be extended to higher-order importance functions such as
+the one discussed in Chapter 2 through linear algebra \cite{heath}. The MC-MP2
+calculations discussed in Chapter 4 all use this method.
 
 \section{The Redundant-Walker Algorithm}
+\label{s:redundant}
 
-Unfortunately, direct implementation of the
+The \emph{redundant-walker algorithm} is a technique forwarded by Willow and
+colleagues in the Hirata group, and a variance reduction technique specific to
+MC-MBPT methods \cite{redundant}. Observe that in equation \ref{eq:walkers},
+only two pairs of walkers are generated each iteration. Rather than generating
+the bare minimum of 2 walker pairs, one can generate $m$ walker pairs, resulting
+in $m(m-1)/2$ unique walker pairs. Summing over each unique walker pair each
+iteration, one finds
+
+\begin{equation}
+\widehat{\perturbE[n]{2}} = \frac{2}{m(m+1)} \sum^{m - 1}_{k = 1} \sum^m_{l = k + 1}
+\frac
+{f_\text{MP2}(^n\bm r_{1k}, ^n\bm r_{2k}, ^n\bm r_{1l}, ^n\bm r_{2l})}
+{\omega(^n\bm r_{1k}, ^n\bm r_{2k}, ^n\bm r_{1l}, ^n\bm r_{2l})}.
+\end{equation}
+
+Observe that this increases the number of points sampled on the order of
+$O(m^2)$ each iteration, while maintaining a linear additional cost $O(m)$.
+This results in a net $O(m)$ performance enhancement, and is thus a useful
+variance reduction technique. In practice however, the benefit of redundant
+walkers begin to taper off past $m = 64$ once evaluation of the MO amplitudes
+becomes rate-limiting \cite{redundant}.
 
 \section{The Control Variates Method}
+\label{s:cv}
 
-\section{Pseudorandom Number Generation}
+This was the subject of my personal improvements to the MC-MP2 implementation in
+the Hirata group, most of which was written by Doran. The \emph{control variates
+method} is a well-known variance reduction technique in the scope of MC methods.
+The gist of the control variates method is that it computes integrals that are
+known analytically using the same random input as the integral of interest, and
+uses it to gauge the relative error associated with the estimator through
+covariance matrices. These covariance matrices can then, in turn, be used to
+correct the estimator and obtain a \emph{controlled} estimator.
+
+\section{F12 Correction}
+\label{s:F12}
+
+The \emph{F12 correction} is a computational technique forwarded by Johnson and
+colleagues in the Hirata group that accounts for \emph{basis set incompleteness
+error} for MBPT methods, including MC-MP2 \cite{willow1, f12-1, f12-2}. The
+basis set incompleteness error arises from the incompleteness of the AO basis
+provided prior to calculation. It is exacerbated for smaller basis sets and is
+lessened for larger basis sets, and always results in an overestimate of the
+energy. A full discussion of its methodology and implementation is well beyond
+my personal understanding, but it suffices to mention it briefly as a method
+that accounts for basis set incompleteness.
+
+\section{Correlated Sampling Method}
+\label{s:correlated}
+
+In some cases, such as the calculation of dimer interaction energies, multiple
+sets of Monte Carlo estimators must be added or subtracted prior to averaging.
+This introduces a significant amount of statistical uncertainty. This
+uncertainty can be lessened, however, by using the same set of random inputs for
+all integrals in a set of calculations. This variance reduction technique is
+termed the \emph{correlated sampling method}, and is a niche
+technique used in certain applications of MC methods \cite{correlated-sampling}.
+
+\subsection{Pseudorandom Number Generation}
+\label{s:prng}
 
 Pseudorandom number generation is a non-trivial issue in the field of computer
 science, because truly random numbers are difficult to generate, and are
@@ -26,7 +132,34 @@ truly random processes. However, they are deterministic, and the sequence is
 entirely dependent on the \emph{seed} provided to the PRNG. The seed value is
 just a parameter chosen to generate different random sequences each iteration,
 and is typically chosen from a truly random input, e.g.\ analog hardware noise.
-For all subsequent experimental work, the \emph{Mersenne Twister algorithm} is
-assumed.
+For all subsequent experimental work, the \emph{Mersenne Twister algorithm}
+\cite{mersenne} is assumed.
 
-\section{Inverse Transform Sampling}
+\subsection{Implementation of Correlated Sampling}
+
+Thus, given a pseudorandom number generator, implementation of correlated
+sampling is relatively simple, and involves only two steps.
+
+\begin{enumerate}
+
+\item Generate a seed according to some random hardware input.
+
+\item Pass the same seed throughout all MC integrations to be carried out within
+a set of calculations.
+
+\end{enumerate}
+
+\section{Counterpoise Correction}
+\label{s:CP}
+
+\emph{Basis set superposition error} (BSSE) is an error that occurs in larger
+systems comprised of multiple molecules. This error arises when the MO basis of
+one molecule ``leaks" into that of the other, and artificially lowers the
+calculated interaction energy. This is because the MP2 method cannot distinguish
+between the electrons of monomer A and the electrons of monomer B. This can be
+corrected by introducing basis sets of the other monomer on ``dummy atoms"
+during the calculation of MO vectors of a monomer. These dummy atoms have 0
+nuclear charge and 0 electrons, but the presence of basis functions on the dummy
+atoms corrects for the BSSE. This is known as the Boys and Bernardi
+\emph{counterpoise correction} (CP correction) \cite{cp}.
+

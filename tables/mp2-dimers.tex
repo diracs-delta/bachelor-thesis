@@ -1,0 +1,26 @@
+\begin{table}[hbt!]
+\centering
+
+\caption{Calculated MC-MP2 interaction energy correction (kcal/mol) of various
+	molecular dimers, with 25,165,824 steps. $\Delta E_\text{MP2}$ and
+	$s_\text{MP2}$ represent the estimate of the MP2 energy correction and
+	its standard error, respectively. $\Delta E_\text{HF+MP2}$ is the final
+	calculated dimer interaction energy obtained with the MC-MP2 method.}
+
+\vspace{1em}
+\begin{tabular}{lllllll}
+\toprule
+Dimer           & Method          & $\Delta E_\text{MP2}$  & $s_\text{MP2}$ & $\Delta E_\text{HF+MP2}$          \\
+\midrule
+\hho            & MP2             & --0.591806             & 0.117697       & --4.160202                        \\
+\hho            & MP2-F12-VBX     & --1.095110             & 0.117979       & --4.663506                        \\
+\ch             & MP2             & --0.646745             & 0.170536       & --0.286630                        \\
+\ch             & MP2-F12-VBX     & --0.712512             & 0.170538       & --0.352397                        \\
+\benzT          & MP2             & --6.047780             & 3.428563       & --4.532628                        \\
+\benzT          & MP2-F12-VBX     & --6.438581             & 3.428703       & --4.923429                        \\
+\benzpara       & MP2             & --0.885701             & 3.939027       &  +4.467841                        \\
+\benzpara       & MP2-F12-VBX     & --1.451004             & 3.939076       &  +3.902538                        \\
+\bottomrule
+\end{tabular}
+\label{t:mp2}
+\end{table}

@@ -1,0 +1,28 @@
+\begin{table}[hbt!]
+\centering
+
+\caption{Calculated MC-MP2 interaction energy correction (kcal/mol) of various
+	molecular dimers \emph{following variance reduction via the control
+	variate method}, with 25,165,824 steps. $\Delta E^C_\text{MP2}$ and
+	$s^C_\text{MP2}$ represent the estimate of the controlled MP2 energy
+	correction and its standard error, respectively. $\Delta
+	E^C_\text{HF+MP2}$ is the final calculated dimer interaction energy obtained
+	with the controlled MC-MP2 method.}
+
+\vspace{1em}
+\begin{tabular}{lllll}
+\toprule
+Dimer           & Method          & $\Delta E^C_\text{MP2}$ & $s^C_\text{MP2}$ & $\Delta E^C_\text{HF+MP2}$ \\
+\midrule
+\hho            & MP2             & --0.807803               & 0.013625         & --4.376199                \\
+\hho            & MP2-F12-VBX     & --1.311111               & 0.015875         & --4.879507                \\
+\ch             & MP2             & --0.754888               & 0.009349         & --0.394773                \\
+\ch             & MP2-F12-VBX     & --0.820656               & 0.009383         & --0.460541                \\
+\benzT          & MP2             & --4.610668               & 0.377171         & --3.095516                \\
+\benzT          & MP2-F12-VBX     & --5.001499               & 0.378417         & --3.486347                \\
+\benzpara       & MP2             & --9.013240               & 0.355480         & --3.659698                \\
+\benzpara       & MP2-F12-VBX     & --9.578532               & 0.356047         & --4.224990                \\
+\bottomrule
+\end{tabular}
+\label{t:mp2-c}
+\end{table}

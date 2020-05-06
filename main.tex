@@ -7,9 +7,18 @@
 \usepackage{setspace}
 \usepackage{braket}
 \usepackage{bm}
-\usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage[version = 4]{mhchem}
+\usepackage{float}
+\usepackage{lscape}
+
+% cool tables
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\definecolor{lightgray}{gray}{0.94}
+\let\oldtabular\tabular
+\let\endoldtabular\endtabular
+\renewenvironment{tabular}{\rowcolors{2}{white}{lightgray}\oldtabular}{\endoldtabular}
 
 % import macros
 \input{macros.tex}
@@ -24,7 +33,11 @@
 \fancyfoot[RO]{\thepage}
 
 % bibliography
-\usepackage[backend = bibtex, sorting = none]{biblatex} \addbibresource{bib.bib}
+\usepackage[backend = bibtex, sorting = none]{biblatex}
+\addbibresource{bib.bib}
+
+%TODO: delete
+%\usepackage{showlabels}
 
 \begin{document}
 
@@ -34,10 +47,8 @@
 
 \tableofcontents
 
-\chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
-
-abstract goes here
+% \chapter*{Abstract}
+% \addcontentsline{toc}{chapter}{Abstract}
 
 \newpage
 
@@ -56,9 +67,6 @@ abstract goes here
 
 % DIMER
 \input{dimer.tex}
-
-% CONCLUSIONS
-\chapter{Conclusions}
 
 \printbibliography
 \addcontentsline{toc}{chapter}{Bibliography}
