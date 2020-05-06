@@ -8,3 +8,7 @@ acs*.bib
 *.blg
 *.fdb_latexmk
 *.fls
+*.out
+*.bcf
+*.run.xml
+*-blx.bib
